@@ -82,14 +82,30 @@ router.put('/products/:id', checkForAdmin, function(req, res){
 });
 
 //DESTROY product
-router.delete('/products/:id', checkForAdmin, function(req, res){
-    Product.findByIdAndDelete(req.params.id, function(err){
-        if(err){
-            console.log(err);
-        }
-        else{
-            res.redirect('/');
-        }
+router.delete('/products/:id', checkForAdmin, function (req, res) {
+    // Product.findByIdAndDelete(req.params.id, function (err) {
+    //     if (err) {
+    //         console.log(err);
+    //     }
+    //     else {
+    //         res.redirect('/');
+    //     }
+    // });
+    //Implement soft delete
+    Product.findById(req.params.id, function (err, foundProduct) {
+        console.log(req.params.id, "from delete");
+        //console.log(req.body.product);
+        //console.log(updatedProduct);
+        foundProduct.unlist = true;
+        foundProduct.save(function(err, updatedProduct){
+            if(err){
+                console.log(err);
+            }
+            else{
+                console.log(updatedProduct);
+                res.redirect('/');
+            }
+        });
     });
 });
 

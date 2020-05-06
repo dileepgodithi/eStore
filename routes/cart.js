@@ -9,24 +9,33 @@ var Order = require('../models/order');
 router.get('/addtocart/:id', function(req, res){
     Product.findById(req.params.id, function(err, product){
         //console.log(product);
-        console.log(req.session.cart, "cart");
-        var cart = new Cart(req.session.cart ? req.session.cart : {});
-        cart.add(product._id, product.price, product.name);
-        req.session.cart = cart;
-        console.log(cart);
-        console.log(req.session.cart);
+        //console.log(req.session.cart, "cart");
+        if(product.stock >0){
+            var cart = new Cart(req.session.cart ? req.session.cart : {});
+            cart.add(product._id, product.price, product.name);
+            req.session.cart = cart;
+            //console.log(cart);
+            //console.log(req.session.cart);
+            if(product.stock < cart.products[product._id].quantity){
+                cart.remove(product._id);
+                req.flash('error', 'Product goes out of stock. Cannot add more!');
+            }
+        }
+        else{
+            req.flash('error', 'Product Out of Stock!');
+        }
         res.redirect('back');
     });
 });
 
 router.get('/removefromcart/:id', function(req, res){
     Product.findById(req.params.id, function(err, product){
-        console.log(product);
+        //console.log(product);
         var cart = new Cart(req.session.cart);
         cart.remove(product._id);
         req.session.cart = cart;
-        console.log(cart);
-        console.log(req.session.cart);
+        //console.log(cart);
+        //console.log(req.session.cart);
         res.redirect('/cart');
     });
 });
@@ -67,8 +76,23 @@ router.post('/checkout', isLoggedIn, function(req, res, next) {
         address: req.body.address,
         name: req.body.name,
     });
-
+    var products = cart.products;
     order.save(function(err, result) {
+        for(entry in products){
+            console.log(entry);
+            Product.findById(entry, function(err, product){
+                console.log(product);
+                product.stock -= products[entry].quantity;
+                product.save(function(err, updatedProduct){
+                    if(err){
+                        console.log(err);
+                    }
+                    else{
+                        console.log(updatedProduct);
+                    }
+                });
+            });
+        }
         if(err){
             console.log(err);
         }
